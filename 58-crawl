@@ -1,0 +1,113 @@
+# -*- coding: utf-8 -*-
+"""
+Created on Tue Jan  1 20:28:13 2019
+
+@author: dell
+"""
+
+###要求爬取58同城二手车的资料，名字、费用、看车地址、商家
+import requests
+import re
+from bs4 import BeautifulSoup
+import csv
+import json
+import pymongo
+from multiprocessing import Pool
+from lxml import etree
+import time
+
+#Client = pymongo.MongoClient("localhost",27017)
+#mydb = Client["mydb"]
+#db = mydb["db"]
+
+
+#file = open("d:remo.csv","w",encoding="utf-8")
+#f = csv.writer(file)
+#f.writerow(("name","price","saleman","location"))
+
+headers = {"Referer": "https://www.baidu.com/",
+           "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/71.0.3578.80 Safari/537.36",
+           "Accept": "image/webp,image/apng,image/*,*/*;q=0.8",
+            "Accept-Encoding": "gzip, deflate, br",
+            "Accept-Language": "zh-CN,zh;q=0.9"
+           }
+
+list = []
+def get_links(url):
+    res = requests.get(url,headers = headers)
+    selector = etree.HTML(res.text)
+    links = selector.xpath("//div[@class='col col1']/a[@class='ac_linkurl']/@href")
+    for link in links:
+        #print(link)
+        time.sleep(2)
+        get_message(link)
+
+def get_message(url):
+    res = requests.get(url)
+    soup = BeautifulSoup(res.text,"lxml")
+    selector = etree.HTML(res.text)
+    names = soup.select("body > div.content > div.content_sumary > div.content_title > p")
+    prices = re.findall('<span class="jiage">\s*(\d+)\s*</span>',res.text,re.S)
+    salemen = selector.xpath("//span[@class='name']/a/text()")
+    locations = selector.xpath("//span[@class='addre']/text()")
+
+    for name,price,saleman,location in zip(names,prices,salemen,locations):
+        name = name.get_text().strip()
+        print(name)
+        data = {
+            "name":name,
+            "price":price,
+            "saleman":saleman,
+            "location":location
+        }
+        #f.writerow((name,price,saleman,location))
+        list.append(data)
+#    for saleman in salemen:
+#        data = {
+#            "saleman":saleman
+#        }
+#        list.append(data)
+
+
+
+def get_info(url):
+    res = requests.get(url,headers = headers)
+    soup = BeautifulSoup(res.text,"lxml")
+    print(soup.prettify())
+
+
+if __name__ =="__main__":
+    #url = "https://shaheshi.58.com/ershouche/pn1/"
+    #url = "https://xt.58.com/ershouche/36237751417870x.shtml?page_id=501&slot_id=31"
+    #get_info(url)
+    #get_links(url)
+
+    urls = ["https://shaheshi.58.com/ershouche/pn{}/".format(str(x)) for x in range(1,2)]
+    
+    pool = Pool(processes=3)
+    pool.map(get_links,urls)
+    time.sleep(2)
+    print(list)
+    
+#    for i in urls:
+#        get_links(i)
+
+    filename1 = "d:/home.json"
+    filename2 = open("d:/lemo.txt","w",encoding="utf-8")
+    for i in list:
+#        db.insert_one(i)
+        with open(filename1,"w",encoding="utf-8")as fl:
+            json.dump(i,fl,ensure_ascii=False,indent=2,sort_keys=True)
+
+        filename2.write(
+            i["name"+"/n"],
+            #i["price"+"/n"],
+            #i["saleman"+"/n"],
+            #i["location"+"/n"]
+        )
+    filename2.close()
+
+
+
+
+
