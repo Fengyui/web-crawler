@@ -1,0 +1,10 @@
+import requests
+import re 
+from bs4 import BeautifulSoup
+
+headers = ""
+def get_info(x):
+  res = requests.get()
+  soup = 
+
+if __name__ == "__main__":
